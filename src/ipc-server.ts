@@ -2,7 +2,7 @@ import { Server, MessageHandler } from '@nestjs/microservices';
 import { createServer, Server as NetServer, Socket } from 'net';
 import { Observable } from 'rxjs';
 
-export class UnixSocketServer extends Server {
+export class IpcServer extends Server {
     private unixServer: NetServer;
     private tcpServer: NetServer;
     private clients: Map<string, Socket> = new Map();
@@ -29,15 +29,24 @@ export class UnixSocketServer extends Server {
         this.tcpServer.close();
     }
 
-    public addHandler(pattern: any, callback: MessageHandler) {
+    public addHandler(pattern: string, callback: MessageHandler) {
         const handlers = this.handlers.get(pattern) || [];
         handlers.push(callback);
         this.handlers.set(pattern, handlers);
     }
 
+    public sendToClient(serviceName: string, message: any): void {
+        const client = this.clients.get(serviceName);
+        if (!client) {
+            console.log(`Service ${serviceName} not found`);
+            return;
+        }
+        client.write(JSON.stringify(message));
+    }
+
     private handleConnection(client: Socket) {
-        client.on('data', (data) => {
-            const message = JSON.parse(data.toString());
+        client.on('data', (buffer) => {
+            const message = JSON.parse(buffer.toString());
 
             if (message.register) {
                 this.clients.set(message.register, client);
@@ -49,7 +58,7 @@ export class UnixSocketServer extends Server {
 
             const serviceName = this.getServiceName(client);
             if (serviceName) {
-                console.log(`Received data from ${serviceName}: ${data.toString()}`);
+                console.log(`Received data from ${serviceName}: ${buffer.toString()}`);
             }
 
             const handlers = this.handlers.get(pattern);

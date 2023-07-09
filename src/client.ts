@@ -1,22 +1,19 @@
-import { ConnectionType, UnixSocketClient } from './unix-socket-client';
+import { ConnectionType, IpcClient } from './ipc-client';
+import { IpcMsg } from './type';
+
 console.log('client runing')
 
-export class RandomNumberClient {
-    private client: UnixSocketClient;
+export class Plugin {
+    private client: IpcClient;
     private intervalId: NodeJS.Timeout;
 
     constructor(serviceId: string, socketPath: string) {
-        this.client = new UnixSocketClient(serviceId, 5600, ConnectionType.TCP);
+        this.client = new IpcClient(serviceId, 5600, ConnectionType.TCP);
         this.client.connect();
     }
 
-    startSendingRandomNumbers() {
-        this.intervalId = setInterval(() => {
-
-            const randomNumber = Math.random();
-            console.log('interval', randomNumber)
-            this.client.publish({ pattern: 'randomNumber', data: randomNumber }, () => { });
-        }, 1000);
+    ipcSend(msg: IpcMsg) {
+        this.client.publish(msg, () => { });
     }
 
     stopSendingRandomNumbers() {
@@ -24,5 +21,11 @@ export class RandomNumberClient {
     }
 }
 
-let t = new RandomNumberClient('test', 'C:/Users/chen/workspace/socket')
-t.startSendingRandomNumbers()
+let plugin = new Plugin('test', 'C:/Users/chen/workspace/socket')
+setInterval(() => {
+    const randomNumber = Math.random();
+    plugin.ipcSend({ pattern: 'random', dst: 'broadcast', data: randomNumber })
+    console.log('interval', randomNumber)
+
+}, 1000);
+

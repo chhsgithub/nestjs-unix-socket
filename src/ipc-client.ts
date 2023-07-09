@@ -6,7 +6,7 @@ export enum ConnectionType {
     UNIX_SOCKET,
 }
 
-export class UnixSocketClient extends ClientProxy {
+export class IpcClient extends ClientProxy {
     private client: Socket;
     private connected: boolean = false;
 
