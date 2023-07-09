@@ -3,27 +3,30 @@ import { createServer, Server as NetServer, Socket } from 'net';
 import { Observable } from 'rxjs';
 
 export class UnixSocketServer extends Server {
-    private server: NetServer;
+    private unixServer: NetServer;
+    private tcpServer: NetServer;
     private clients: Map<string, Socket> = new Map();
     private handlers: Map<string, MessageHandler[]> = new Map();
 
-    constructor(private readonly socketPath: string) {
+    constructor(private readonly socketPath: string, private readonly tcpPort: number) {
         super();
-        this.server = createServer(this.handleConnection.bind(this));
-        // this.server = createServer(this.handleConnection.bind(this));
-        // Ensure the socket path is suitable for Windows
+        this.unixServer = createServer(this.handleConnection.bind(this));
+        this.tcpServer = createServer(this.handleConnection.bind(this));
         if (process.platform === 'win32') {
             this.socketPath = '\\\\.\\pipe\\' + this.socketPath.replace(/\//g, '-');
-
         }
     }
 
     public listen(callback: () => void) {
-        this.server.listen(this.socketPath, callback);
+        this.unixServer.listen(this.socketPath, callback);
+        this.tcpServer.listen(this.tcpPort, () => {
+            console.log(`TCP server is listening on port ${this.tcpPort}`);
+        });
     }
 
     public close() {
-        this.server.close();
+        this.unixServer.close();
+        this.tcpServer.close();
     }
 
     public addHandler(pattern: any, callback: MessageHandler) {
@@ -46,7 +49,7 @@ export class UnixSocketServer extends Server {
 
             const serviceName = this.getServiceName(client);
             if (serviceName) {
-                console.log(`Received data from ${serviceName}, ${data.toString()}`);
+                console.log(`Received data from ${serviceName}: ${data.toString()}`);
             }
 
             const handlers = this.handlers.get(pattern);

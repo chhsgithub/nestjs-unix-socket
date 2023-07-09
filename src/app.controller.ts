@@ -4,15 +4,15 @@ import { UnixSocketServer } from './unix-socket-server';
 
 @Controller()
 export class AppController implements OnModuleInit {
-  private server: UnixSocketServer;
+  private unixServer: UnixSocketServer;
 
   constructor() {
-    this.server = new UnixSocketServer('C:/Users/chen/workspace/socket');
+    this.unixServer = new UnixSocketServer('C:/Users/chen/workspace/socket', 5600);
   }
 
   async onModuleInit() {
-    this.server.addHandler('randomNumber', this.receiveRandomNumber);
-    this.server.listen(() => console.log('Server is listening'));
+    this.unixServer.addHandler('randomNumber', this.receiveRandomNumber);
+    this.unixServer.listen(() => console.log('Server is listening'));
   }
 
 

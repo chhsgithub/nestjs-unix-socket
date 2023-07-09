@@ -1,4 +1,4 @@
-import { UnixSocketClient } from './unix-socket-client';
+import { ConnectionType, UnixSocketClient } from './unix-socket-client';
 console.log('client runing')
 
 export class RandomNumberClient {
@@ -6,7 +6,7 @@ export class RandomNumberClient {
     private intervalId: NodeJS.Timeout;
 
     constructor(serviceId: string, socketPath: string) {
-        this.client = new UnixSocketClient(serviceId, socketPath);
+        this.client = new UnixSocketClient(serviceId, 5600, ConnectionType.TCP);
         this.client.connect();
     }
 
