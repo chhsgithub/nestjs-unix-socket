@@ -1,6 +1,7 @@
 const { exec } = require('child_process');
 import * as fs from 'fs'
-
+import * as os from 'os'
+import * as path from 'path'
 function killProcess(pid) {
   return new Promise((resolve, reject) => {
     exec(`taskkill /PID ${pid} /F`, (error, stdout, stderr) => {
@@ -14,15 +15,12 @@ function killProcess(pid) {
 }
 
 
-
-const filepath = 'C:/Users/chen/unzip/temp.txt'
 function runAsAdmin(command) {
   return new Promise<string>((resolve, reject) => {
     // Create a temporary file to store the command output
-    // let tempFile = path.join(os.tmpdir(), 'temp.txt');
+    const tempFile = path.join(os.tmpdir(), 'runAsAdmin.txt');
 
-    let tempFile = filepath;
-    const psCommand = `Start-Process cmd.exe -Verb runAs -ArgumentList '/c ${command} > ${tempFile}' -Wait; ; Get-Content ${tempFile}`;
+    const psCommand = `Start-Process cmd.exe -Verb runAs -ArgumentList '/c ${command} > ${tempFile}' -Wait -WindowStyle Hidden; Get-Content ${tempFile}`;
     // console.log(psCommand)
     exec(`powershell "${psCommand}"`, (err) => {
       if (err) {
@@ -42,23 +40,23 @@ function runAsAdmin(command) {
 
 // powershell Start-Process cmd.exe -Verb runAs -ArgumentList '/c C:/Users/chen/unzip/sys/handle.exe -accepteula -nobanner D:/Downloads/a4k.net_2023-05-02_773498654.rar'
 // 使用示例
-runAsAdmin('C:/Users/chen/unzip/sys/handle.exe -accepteula -nobanner C:\\Users\\chen\\unzip\\Release\\test.tar.xz')
-  .then(stdout => {
-    console.log(stdout);
-    let processInfo = parseOutput(stdout)
-    console.log(processInfo);
-    // 使用示例
-    killProcess(processInfo[0].pid)
-      .then(output => {
-        console.log(output);
-      })
-      .catch(err => {
-        console.error(err);
-      });
-  })
-  .catch(err => {
-    console.error(err);
-  });
+// runAsAdmin('C:/Users/chen/unzip/sys/handle.exe -accepteula -nobanner C:\\Users\\chen\\unzip\\Release\\test.tar.xz')
+//   .then(stdout => {
+//     console.log(stdout);
+//     let processInfo = parseOutput(stdout)
+//     console.log(processInfo);
+//     // 使用示例
+//     killProcess(processInfo[0].pid)
+//       .then(output => {
+//         console.log(output);
+//       })
+//       .catch(err => {
+//         console.error(err);
+//       });
+//   })
+//   .catch(err => {
+//     console.error(err);
+//   });
 
 
 type ProcessInfo = {
@@ -90,3 +88,23 @@ function parseOutput(output: string): ProcessInfo[] {
   return result;
 }
 
+async function findProcessUsingFile(filepath: string) {
+  if (os.platform() != 'win32') {
+    throw new Error('findProcessUsingFile only works on Windows');
+  }
+  try {
+    const output = await runAsAdmin(`C:/Users/chen/unzip/sys/handle.exe -accepteula -nobanner ${filepath}`);
+    return parseOutput(output);
+  } catch (error) {
+    console.error('Failed to find the process', error);
+  }
+}
+
+let t = Date.now()
+findProcessUsingFile('C:\\Users\\chen\\unzip\\Release\\test.tar.xz')
+  .then(processInfo => {
+    console.log(`Process ${processInfo[0].processName} (pid: ${processInfo[0].pid}) is using the file`);
+  })
+  .catch(err => {
+    console.error(err.toString());
+  });
