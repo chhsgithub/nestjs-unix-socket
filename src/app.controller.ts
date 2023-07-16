@@ -4,15 +4,15 @@ import { IpcServer } from './ipc-server';
 
 @Controller()
 export class AppController implements OnModuleInit {
-  private unixServer: IpcServer;
+  #ipcServer: IpcServer;
 
   constructor() {
-    this.unixServer = new IpcServer('C:/Users/chen/workspace/socket', 5600);
+    this.#ipcServer = IpcServer.getInstance();
   }
 
   async onModuleInit() {
-    this.unixServer.addHandler('randomNumber', this.receiveRandomNumber);
-    this.unixServer.listen(() => console.log('Server is listening'));
+    this.#ipcServer.addHandler('randomNumber', this.receiveRandomNumber);
+    this.#ipcServer.listen('C:/Users/chen/workspace/socket', 5600, () => console.log('Server is listening'));
   }
 
   getHello() {

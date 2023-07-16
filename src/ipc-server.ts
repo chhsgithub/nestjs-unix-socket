@@ -3,24 +3,40 @@ import { createServer, Server as NetServer, Socket } from 'net';
 import { Observable } from 'rxjs';
 
 export class IpcServer extends Server {
+    private static instance: IpcServer;
     private unixServer: NetServer;
     private tcpServer: NetServer;
     private clients: Map<string, Socket> = new Map();
     private handlers: Map<string, MessageHandler[]> = new Map();
+    #listened = false
 
-    constructor(private readonly socketPath: string, private readonly tcpPort: number) {
+    public static getInstance(): IpcServer {
+        if (!IpcServer.instance) {
+            IpcServer.instance = new IpcServer();
+        }
+        return IpcServer.instance;
+    }
+
+    private constructor() {
         super();
+
+    }
+
+    public listen(socketPath: string, tcpPort: number, callback: () => void) {
+        if (this.#listened) {
+            console.warn('ipc was already listened')
+            return;
+        }
+        this.#listened = true;
         this.unixServer = createServer(this.handleConnection.bind(this));
         this.tcpServer = createServer(this.handleConnection.bind(this));
         if (process.platform === 'win32') {
-            this.socketPath = '\\\\.\\pipe\\' + this.socketPath.replace(/\//g, '-');
+            socketPath = '\\\\.\\pipe\\' + socketPath.replace(/\//g, '-');
         }
-    }
 
-    public listen(callback: () => void) {
-        this.unixServer.listen(this.socketPath, callback);
-        this.tcpServer.listen(this.tcpPort, () => {
-            console.log(`TCP server is listening on port ${this.tcpPort}`);
+        this.unixServer.listen(socketPath, callback);
+        this.tcpServer.listen(tcpPort, '0.0.0.0', () => {
+            console.log(`TCP server is listening on port ${tcpPort}`);
         });
     }
 
@@ -75,10 +91,18 @@ export class IpcServer extends Server {
             );
         });
 
+        client.on('error', () => {
+            const serviceName = this.getServiceName(client);
+            if (serviceName) {
+                console.log(`Service ${serviceName} disconnected:error`);
+
+            }
+        });
+
         client.on('end', () => {
             const serviceName = this.getServiceName(client);
             if (serviceName) {
-                console.log(`Service ${serviceName} disconnected`);
+                console.log(`Service ${serviceName} disconnected:end`);
                 this.clients.delete(serviceName);
             }
         });

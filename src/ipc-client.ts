@@ -49,7 +49,7 @@ export class IpcClient extends ClientProxy {
     private createConnection(): Socket {
         switch (this.connectionType) {
             case ConnectionType.TCP:
-                return connect({ port: this.pathOrPort as number });
+                return connect({ port: this.pathOrPort as number, host: '0.0.0.0' });
             case ConnectionType.UNIX_SOCKET:
             default:
                 return connect(this.pathOrPort as string);
